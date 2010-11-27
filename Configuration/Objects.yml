@@ -1,0 +1,2 @@
+F3\FLOW3\Persistence\PersistenceManagerInterface:
+  className: 'F3\Doctrine\Persistence\DoctrinePersistenceManager'
