@@ -18,19 +18,9 @@ class DoctrinePersistenceManager implements PersistenceManagerInterface
      */
     private $settings = array();
 
-    /**
-     * @var UUIDManager
-     */
-    private $uuidManager;
-
     public function injectEntityManager(EntityManager $em)
     {
-        $this->uuidManager = new Events\UUIDManager();
-        $this->uuidManager->injectPersistenceManager($this);
-        $this->uuidManager->injectConnection($em->getConnection());
-
         $this->em = $em;
-        $this->em->getEventManager()->addEventListener(array('postLoad', 'prePersist', 'postPersist'), $this->uuidManager);
     }
 
     public function getIdentifierByObject($object)
@@ -54,8 +44,7 @@ class DoctrinePersistenceManager implements PersistenceManagerInterface
      */
     public function getObjectByIdentifier($identifier)
     {
-        $entityName = $this->uuidManager->getClassIdentifier($identifier);
-        return $this->em->find($entityName, $identifier);
+        
     }
 
     public function getObjectCountByQuery(\F3\FLOW3\Persistence\QueryInterface $query)
@@ -65,7 +54,7 @@ class DoctrinePersistenceManager implements PersistenceManagerInterface
 
     public function getObjectDataByQuery(\F3\FLOW3\Persistence\QueryInterface $query)
     {
-        
+        return $query->execute();
     }
 
     public function initialize()

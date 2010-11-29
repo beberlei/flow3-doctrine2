@@ -3,8 +3,10 @@
 namespace F3\Doctrine\Persistence\Metadata;
 
 use Doctrine\ORM\Mapping\Driver\Driver;
+use Doctrine\ORM\Mapping\ClassMetadataInfo;
+use Doctrine\ORM\Mapping\Driver\AnnotationDriver;
 
-class FLOW3AnnotationsDriver implements Driver
+class FLOW3AnnotationsDriver extends AnnotationDriver
 {
     /**
      * @var \F3\FLOW3\Reflection\ReflectionService
@@ -23,30 +25,21 @@ class FLOW3AnnotationsDriver implements Driver
         $this->reflectionService = $reflectionService;
     }
 
-    public function getAllClassNames()
-    {
-        return array();
-    }
-
-    public function isTransient($className)
-    {
-        return !$this->reflectionService->getClassSchema($className)->isAggregateRoot();
-    }
-
     public function loadMetadataForClass($className, ClassMetadataInfo $metadata)
     {
+        parent::loadMetadataForClass($className, $metadata);
+
         $classSchema = $this->reflectionService->getClassSchema($className);
 
         $idProperties = $classSchema->getIdentityProperties();
         $uuidPropertyName = $classSchema->getUuidPropertyName();
 
         foreach ($classSchema->getProperties() AS $propertyName => $data) {
-            if ($classSchema->isMultiValuedProperty($propertyName)) {
-                // definately an association many-to-many or one-to-many?
-                
+            if (!$classSchema->isMultiValuedProperty($propertyName)) {
+                if ($metadata->hasField($propertyName)) {
+                    continue;
+                }
 
-                
-            } else {
                 $mapping = array();
                 $mapping['name'] = $propertyName;
                 $mapping['nullable'] = false;
