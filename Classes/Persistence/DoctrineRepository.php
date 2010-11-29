@@ -3,6 +3,8 @@
 namespace F3\Doctrine\Persistence;
 
 use F3\FLOW3\Persistence\RepositoryInterface;
+use F3\FLOW3\Persistence\PersistenceManagerInterface;
+use F3\FLOW3\Persistence\QueryFactoryInterface;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityRepository;
 
@@ -36,6 +38,11 @@ class DoctrineRepository implements RepositoryInterface
      */
     protected $objectType;
 
+    /**
+     * @var array
+     */
+    protected $defaultOrderings = array();
+
     public function __construct()
     {
         $this->addedObjects = new \SplObjectStorage();
@@ -62,7 +69,7 @@ class DoctrineRepository implements RepositoryInterface
      * @return void
      * @author Robert Lemke <robert@typo3.org>
      */
-    public function injectPersistenceManager(\F3\FLOW3\Persistence\PersistenceManagerInterface $persistenceManager)
+    public function injectPersistenceManager(PersistenceManagerInterface $persistenceManager)
     {
         $this->persistenceManager = $persistenceManager;
     }
@@ -74,7 +81,7 @@ class DoctrineRepository implements RepositoryInterface
      * @return void
      * @author Karsten Dambekalns <karsten@typo3.org>
      */
-    public function injectQueryFactory(\F3\FLOW3\Persistence\QueryFactoryInterface $queryFactory)
+    public function injectQueryFactory(QueryFactoryInterface $queryFactory)
     {
         $this->queryFactory = $queryFactory;
     }
@@ -98,7 +105,7 @@ class DoctrineRepository implements RepositoryInterface
 
     public function countAll()
     {
-        // build a dql query for single key entities otherwise throw not supported excetion.
+        return $this->persistenceManager->getObjectCountByQuery($this->createQuery());
     }
 
     /**
@@ -106,12 +113,18 @@ class DoctrineRepository implements RepositoryInterface
      */
     public function createQuery()
     {
-        return $this->queryFactory->create($this->objectType);
+        /* @var $query \F3\FLOW3\Persistence\QueryInterface */
+        $query = $this->queryFactory->create($this->objectType);
+        if ($this->defaultOrderings) {
+            $query->setOrderings($this->defaultOrderings);
+        }
+        return $query;
     }
 
     public function findByUuid($uuid)
     {
-        
+        // dont second guess if there really IS a uuid.
+        return $this->em->find($this->objectType, $uuid);
     }
 
     public function getAddedObjects()
@@ -149,11 +162,12 @@ class DoctrineRepository implements RepositoryInterface
         if (!($newObject instanceof $this->objectType)) {
             throw new \F3\FLOW3\Persistence\Exception\IllegalObjectTypeException('The modified object given to update() was not of the type (' . $this->objectType . ') this repository manages.', 1249479625);
         }
+        $this->persistenceManager->replaceObject($existingObject, $newObject);
     }
 
     public function setDefaultOrderings(array $defaultOrderings)
     {
-        
+        $this->defaultOrderings = $defaultOrderings;
     }
 
     public function update($modifiedObject)
@@ -162,7 +176,11 @@ class DoctrineRepository implements RepositoryInterface
             throw new \F3\FLOW3\Persistence\Exception\IllegalObjectTypeException('The modified object given to update() was not of the type (' . $this->objectType . ') this repository manages.', 1249479625);
         }
 
-        
+        $class = get_class($modifiedObject);
+        $identifer = $this->em->getClassMetadata($class->name)->getIdentifierValues($modifiedObject);
+        $existingObject = $this->em->find($class->name, $identifier);
+
+        $this->replace($existingObject, $modifiedObject);
     }
 
     /**

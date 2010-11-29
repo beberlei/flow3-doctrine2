@@ -46,6 +46,14 @@ class DoctrineQuery implements \F3\FLOW3\Persistence\QueryInterface
     }
 
     /**
+     * @return Doctrine\ORM\QueryBuilder
+     */
+    public function getDoctrineQueryBuilder()
+    {
+        return $this->qb;
+    }
+
+    /**
      * Executes the query against the backend and returns the result
      *
      * @return \F3\FLOW3\Persistence\QueryResultInterface The query result
